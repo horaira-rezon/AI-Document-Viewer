@@ -1,0 +1,177 @@
+/* ==========================================================================
+   DocuLens - Custom Stylesheet & Dark Mode Support
+   ========================================================================== */
+
+/* --- Base Body & Typography --- */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* --- Clean Custom Scrollbars --- */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* --- Resizable Splitter Hover Guide --- */
+#split-resizer {
+  transition: background-color 0.15s ease, width 0.15s ease;
+}
+
+/* --- DOCX Viewer Layout Overrides --- */
+.docx-wrapper {
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+.docx-wrapper > section.docx {
+  background: #ffffff !important;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1) !important;
+  margin-bottom: 24px !important;
+  border-radius: 10px !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+.dark .docx-wrapper > section.docx {
+  border-color: #334155 !important;
+}
+
+/* --- Continuous Document Pages Stack --- */
+.doc-page-card {
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* --- Markdown Prose Content Styling --- */
+.prose {
+  font-size: 0.9375rem; /* 15px */
+  line-height: 1.625;
+}
+
+.prose p {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.prose ul {
+  list-style-type: disc;
+  padding-left: 1.35rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.prose ol {
+  list-style-type: decimal;
+  padding-left: 1.35rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.prose h1,
+.prose h2,
+.prose h3 {
+  font-weight: 700;
+  margin-top: 0.85rem;
+  margin-bottom: 0.35rem;
+  color: inherit;
+}
+
+.prose code {
+  background: rgba(0, 0, 0, 0.07);
+  padding: 0.15rem 0.35rem;
+  border-radius: 0.25rem;
+  font-size: 0.88em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.dark .prose code {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.prose pre code {
+  background: transparent;
+  padding: 0;
+}
+
+/* --- Interactive Diagram Popup Lightbox & Pan-Zoom --- */
+#lightbox-modal {
+  touch-action: none;
+}
+
+#lightbox-viewport {
+  background-image: radial-gradient(rgba(148, 163, 184, 0.3) 1.2px, transparent 1.2px);
+  background-size: 20px 20px;
+}
+
+.dark #lightbox-viewport {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.12) 1.2px, transparent 1.2px);
+}
+
+.diagram-canvas-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 280px;
+  max-width: 90vw;
+  user-select: none;
+}
+
+.dark .diagram-canvas-card {
+  background-color: #1e293b;
+  border-color: #334155;
+  box-shadow: 0 20px 30px -5px rgba(0, 0, 0, 0.4);
+}
+
+.diagram-canvas-card svg {
+  display: block;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  min-width: 260px;
+}
+
+.diagram-canvas-card img {
+  border-radius: 10px;
+  max-width: 100%;
+  max-height: 70vh;
+  object-contain: contain;
+}
+
+.diagram-interactive-card {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.diagram-interactive-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+}
+
+

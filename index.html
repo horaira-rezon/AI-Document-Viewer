@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>DocuLense | AI Document Analyzer</title>
+  
+  <!-- PWA Web App Manifest & Mobile Meta -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#10A37F" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="DocuLens" />
+  <link rel="apple-touch-icon" href="icons/icon-192x192.png" />
+  <link rel="icon" type="image/png" href="icons/icon-192x192.png" />
+
+  <!-- Tailwind CSS CDN with Dark Mode Support -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: "#ecfdf5",
+              100: "#d1fae5",
+              200: "#a7f3d0",
+              500: "#10a37f",
+              600: "#0d8c6d",
+              700: "#047857",
+              800: "#065f46",
+              900: "#064e3b",
+            },
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- PDF.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  </script>
+
+  <!-- JSZip for DOCX / PPTX archive unpacking -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+  <!-- DOCX Preview CDN -->
+  <script src="https://unpkg.com/docx-preview/dist/docx-preview.min.js"></script>
+
+  <!-- Marked Markdown Parser CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <!-- Mermaid.js Vector Diagram Engine CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'neutral',
+      securityLevel: 'loose',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+    });
+  </script>
+
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body class="bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 h-screen w-screen overflow-hidden flex flex-col selection:bg-brand-100 dark:selection:bg-brand-900/40 selection:text-brand-900 dark:selection:text-brand-200">
+
+  <!-- ========================================== -->
+  <!-- TOP NAVBAR (Compact Height h-11) -->
+  <!-- ========================================== -->
+  <header class="h-11 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 px-3 flex items-center justify-between shrink-0 select-none z-30 shadow-2xs">
+    
+    <!-- Brand Logo -->
+    <div class="flex items-center gap-2 shrink-0 pr-2.5 border-r border-gray-200 dark:border-slate-800">
+      <div class="w-7 h-7 rounded-lg bg-gradient-to-tr from-brand-600 to-brand-500 flex items-center justify-center text-white shadow-2xs">
+        <i data-lucide="sparkles" class="w-4 h-4"></i>
+      </div>
+      <div>
+        <h1 class="text-sm font-bold tracking-tight text-slate-900 dark:text-white leading-tight">DocuLens</h1>
+      </div>
+    </div>
+
+    <!-- Multi-Document File Tray -->
+    <div class="flex-1 min-w-0 px-2 overflow-hidden">
+      <div id="file-tray" class="flex items-center gap-1.5 overflow-x-auto py-0.5 scrollbar-none max-w-full">
+        <!-- Document tabs dynamically inserted by app.js -->
+      </div>
+    </div>
+
+    <!-- Right Controls: Dynamic Dark Mode Toggle, Install App, API Key & Mobile Switcher -->
+    <div class="flex items-center gap-1.5 shrink-0">
+      
+      <!-- Dark / Light Mode Toggle Button (Icon changes dynamically with Sun / Moon) -->
+      <button id="theme-toggle-btn" class="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-gray-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800 transition-colors" title="Toggle Light / Dark Mode">
+        <i data-lucide="moon" class="w-4 h-4"></i>
+      </button>
+
+      <!-- PWA Install Button -->
+      <button id="btn-install-app" class="hidden inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-brand-700 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/60 hover:bg-brand-100 dark:hover:bg-brand-900/50 border border-brand-200 dark:border-brand-800/60 rounded-lg transition-all shadow-2xs" title="Install DocuLens as a standalone app">
+        <i data-lucide="download" class="w-3.5 h-3.5"></i>
+        <span>Install App</span>
+      </button>
+
+      <!-- Settings / API Key Button -->
+      <button id="open-settings-btn" class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-slate-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700 rounded-lg transition-colors">
+        <i data-lucide="key" class="w-3.5 h-3.5 text-brand-600 dark:text-brand-400"></i>
+        <span id="api-key-status-label">API Key</span>
+      </button>
+
+      <!-- Mobile Tab Switcher -->
+      <div class="flex md:hidden bg-gray-100 dark:bg-slate-800 p-0.5 rounded-lg border border-gray-200 dark:border-slate-700">
+        <button id="mobile-tab-viewer" class="flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-white dark:bg-slate-700 text-brand-700 dark:text-brand-300 shadow-2xs">
+          <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+          <span>Reader</span>
+        </button>
+        <button id="mobile-tab-chat" class="flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium text-gray-500 dark:text-gray-400">
+          <i data-lucide="message-square" class="w-3.5 h-3.5"></i>
+          <span>Chat</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================== -->
+  <!-- MAIN SPLIT VIEW (With Resizable Splitter) -->
+  <!-- ========================================== -->
+  <main id="main-split-container" class="flex-1 flex overflow-hidden relative">
+    
+    <!-- LEFT PANEL: VIEWER (Default wider width ~68%) -->
+    <section id="viewer-container" class="flex flex-col h-full overflow-hidden bg-[#FAFAFA] dark:bg-slate-950 border-r border-gray-200 dark:border-slate-800" style="width: 68%; min-width: 300px;">
+      
+      <!-- Compact Viewer Toolbar (Height h-9) -->
+      <div id="viewer-toolbar" class="h-9 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 px-3 flex items-center justify-between shrink-0 select-none shadow-2xs">
+        
+        <!-- Continuous Page Navigation & Indicator -->
+        <div class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+          <button id="btn-prev-page" class="p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-800 disabled:opacity-30 transition-colors" title="Scroll to previous page">
+            <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
+          </button>
+          <span id="page-counter-label" class="font-medium text-slate-700 dark:text-slate-200 min-w-[65px] text-center text-[13px]">Page 1 / 1</span>
+          <button id="btn-next-page" class="p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-800 disabled:opacity-30 transition-colors" title="Scroll to next page">
+            <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+
+        <!-- Center: Freehand Marker Tool & Clear Marks -->
+        <div class="flex items-center gap-1.5">
+          <button id="btn-marker-toggle" class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg transition-all shadow-2xs bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-300 dark:border-slate-700" title="Click to circle any region on the document">
+            <i data-lucide="pen-tool" class="w-3.5 h-3.5 text-brand-600 dark:text-brand-400"></i>
+            <span id="marker-btn-text">Marker Tool</span>
+          </button>
+
+          <button id="btn-clear-mark" class="hidden inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 border border-red-200 dark:border-red-900/50 rounded-lg transition-colors" title="Clear active marked region">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            <span>Clear Mark</span>
+          </button>
+        </div>
+
+        <!-- Right: Zoom Controls (Also supports Ctrl + Mouse Scroll) -->
+        <div class="flex items-center gap-0.5" title="Zoom in/out (or Ctrl + Mouse Scroll)">
+          <button id="btn-zoom-out" class="p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors" title="Zoom out (Ctrl + Scroll Down)">
+            <i data-lucide="zoom-out" class="w-3.5 h-3.5"></i>
+          </button>
+          <span id="zoom-label" class="px-1.5 py-0.5 text-xs font-medium text-slate-600 dark:text-slate-300 min-w-[40px] text-center">100%</span>
+          <button id="btn-zoom-in" class="p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors" title="Zoom in (Ctrl + Scroll Up)">
+            <i data-lucide="zoom-in" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Continuous Document Viewport (Vertical Scroll) -->
+      <div id="viewer-viewport" class="flex-1 overflow-y-auto overflow-x-auto bg-[#F1F3F5] dark:bg-slate-950/80 relative flex flex-col items-center p-4">
+        
+        <!-- Empty Upload Dropzone State -->
+        <div id="empty-state-dropzone" class="my-auto w-full max-w-lg p-10 bg-white dark:bg-slate-900 border-2 border-dashed border-gray-300 dark:border-slate-700 hover:border-brand-500 dark:hover:border-brand-400 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer transition-all shadow-sm group hover:shadow-md">
+          <div class="w-14 h-14 rounded-2xl bg-brand-50 dark:bg-brand-950/50 text-brand-600 dark:text-brand-400 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+            <i data-lucide="upload" class="w-7 h-7"></i>
+          </div>
+          <h3 class="text-base font-semibold text-slate-900 dark:text-white mb-1">Upload study documents</h3>
+          <p class="text-[13px] text-slate-500 dark:text-slate-400 max-w-xs mb-5">Drag & drop or click to upload up to 10 files (PDF, DOCX, PPTX, Images).</p>
+          <div class="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 bg-gray-50 dark:bg-slate-800/80 px-3.5 py-1.5 rounded-xl border border-gray-200 dark:border-slate-700">
+            <span>📄 PDF</span>
+            <span>•</span>
+            <span>📝 DOCX</span>
+            <span>•</span>
+            <span>📊 PPTX</span>
+            <span>•</span>
+            <span>🖼️ Images</span>
+          </div>
+        </div>
+
+        <!-- Continuous Vertical Document Pages Stack -->
+        <div id="continuous-pages-container" class="hidden flex flex-col items-center gap-6 w-full py-2">
+          <!-- Continuous page cards are injected here by app.js -->
+        </div>
+
+      </div>
+    </section>
+
+    <!-- RESIZABLE SPLIT DIVIDER / DRAG HANDLE -->
+    <div id="split-resizer" class="hidden md:flex w-2.5 hover:w-3 bg-gray-200 hover:bg-brand-500 dark:bg-slate-800 dark:hover:bg-brand-500 cursor-col-resize shrink-0 transition-all items-center justify-center group select-none z-20" title="Drag left or right to resize panels">
+      <div class="w-1 h-8 bg-gray-400 dark:bg-slate-600 group-hover:bg-white rounded-full transition-colors"></div>
+    </div>
+
+    <!-- RIGHT PANEL: CHAT ASSISTANT -->
+    <section id="chat-container" class="hidden md:flex flex-1 flex-col h-full bg-white dark:bg-slate-900 overflow-hidden" style="min-width: 280px;">
+      
+      <!-- Compact Top Chat Header (Height h-9) -->
+      <div class="h-9 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 px-3 flex items-center justify-between shrink-0 select-none shadow-2xs">
+        <div class="flex items-center gap-2">
+          <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+          <span class="text-xs font-bold text-slate-900 dark:text-white">AI Study Assistant</span>
+          <span id="current-model-badge" class="text-[10px] bg-brand-50 dark:bg-brand-950/60 text-brand-700 dark:text-brand-300 font-medium px-2 py-0.5 rounded-full border border-brand-200 dark:border-brand-800/60">
+            Gemini Flash
+          </span>
+        </div>
+
+        <div class="flex items-center gap-1.5">
+          <!-- Reading Simplicity Level Buttons -->
+          <div class="flex items-center gap-0.5 bg-gray-100 dark:bg-slate-800 p-0.5 rounded-lg border border-gray-200 dark:border-slate-700 text-xs">
+            <button class="simplicity-btn px-2 py-0.5 rounded-md font-medium bg-white dark:bg-slate-700 text-brand-700 dark:text-brand-300 shadow-2xs" data-level="simple" title="Explain in very simple terms with analogies">Simple</button>
+            <button class="simplicity-btn px-2 py-0.5 rounded-md font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white" data-level="standard" title="Standard college level explanation">Standard</button>
+            <button class="simplicity-btn px-2 py-0.5 rounded-md font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white" data-level="technical" title="In-depth, formal, and technical rigor">Technical</button>
+          </div>
+
+          <button id="btn-clear-chat" class="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-slate-800 rounded-lg transition-colors" title="Clear chat history">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Messages Stream List -->
+      <div id="messages-list" class="flex-1 overflow-y-auto p-4 space-y-4 text-[15px]">
+        <!-- Welcome Message -->
+        <div class="flex gap-3 leading-relaxed justify-start">
+          <div class="w-7 h-7 rounded-lg bg-brand-500 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+          </div>
+          <div class="flex flex-col max-w-[90%] items-start">
+            <div class="px-4 py-3 rounded-2xl bg-[#F7F7F8] dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-bl-sm border border-gray-200 dark:border-slate-700 shadow-2xs w-full prose">
+              <p>👋 Welcome to <strong>DocuLens</strong>! Upload up to 10 documents (PDF, DOCX, PPTX, or Images). You can freely scroll through continuous multi-page documents, use <strong>Ctrl + Mouse Wheel</strong> to zoom, circle specific formulas or diagrams using the <strong>Marker tool (✏️)</strong>, and ask Gemini any question. Responses include clear explanations and live vector diagrams!</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Chat Area -->
+      <div class="p-3 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-800 shrink-0">
+        
+        <!-- Active Selection Target Chip -->
+        <div id="active-selection-chip" class="hidden mb-2.5 flex items-center justify-between p-2 bg-brand-50/80 dark:bg-brand-950/60 border border-brand-200 dark:border-brand-800/60 rounded-xl shadow-2xs">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <img id="chip-thumbnail" src="" alt="Active Selection" class="w-10 h-10 object-contain rounded-md bg-white dark:bg-slate-800 border border-brand-200 dark:border-brand-700 shrink-0" />
+            <div class="text-xs truncate">
+              <p class="font-semibold text-brand-900 dark:text-brand-200 truncate">Targeting Marked Selection</p>
+              <p id="chip-meta" class="text-[11px] text-brand-700 dark:text-brand-400 truncate">Document (Page 1)</p>
+            </div>
+          </div>
+          <button id="btn-dismiss-chip" class="p-1 text-brand-600 dark:text-brand-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-brand-100 dark:hover:bg-brand-900/50 rounded-lg transition-colors shrink-0" title="Remove selection target">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <!-- Quick Starter Prompts -->
+        <div id="quick-prompts-bar" class="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none">
+          <button class="quick-prompt-btn text-xs px-2.5 py-1 bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700 rounded-full text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white whitespace-nowrap transition-colors shrink-0">
+            Explain this marked area in simple terms with a flowchart diagram.
+          </button>
+          <button class="quick-prompt-btn text-xs px-2.5 py-1 bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700 rounded-full text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white whitespace-nowrap transition-colors shrink-0">
+            Summarize the core takeaways from the uploaded documents.
+          </button>
+          <button class="quick-prompt-btn text-xs px-2.5 py-1 bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700 rounded-full text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white whitespace-nowrap transition-colors shrink-0">
+            Create 3 practice quiz questions based on this section.
+          </button>
+        </div>
+
+        <!-- Chat Input Form -->
+        <form id="chat-form" class="relative flex items-end gap-2">
+          <div class="relative flex-1 bg-gray-50 dark:bg-slate-800/80 focus-within:bg-white dark:focus-within:bg-slate-800 border border-gray-200 dark:border-slate-700 focus-within:border-brand-500 dark:focus-within:border-brand-500 rounded-2xl transition-all shadow-2xs">
+            <textarea id="chat-input" placeholder="Ask about your documents or request a diagram..." rows="1" class="w-full resize-none bg-transparent px-3.5 py-2.5 text-[14.5px] text-slate-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none max-h-32 min-h-[42px]"></textarea>
+          </div>
+          <button id="chat-send-btn" type="submit" class="p-2.5 bg-brand-500 hover:bg-brand-600 disabled:bg-gray-200 dark:disabled:bg-slate-800 text-white disabled:text-gray-400 dark:disabled:text-gray-600 rounded-xl transition-all shadow-2xs shrink-0" title="Send question">
+            <i data-lucide="send" class="w-4 h-4"></i>
+          </button>
+        </form>
+
+        <div class="mt-1.5 flex items-center justify-between text-[11px] text-gray-400 dark:text-gray-500 px-1">
+          <span>Google Gemini • Real-time stream</span>
+          <span>Shift+Enter for newline</span>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Global Hidden File Input -->
+  <input type="file" id="global-file-input" multiple accept=".pdf,.docx,.pptx,.png,.jpg,.jpeg,.webp,.gif,.txt,.md" class="hidden" />
+
+  <!-- ========================================== -->
+  <!-- SETTINGS MODAL (API KEY & MODEL) -->
+  <!-- ========================================== -->
+  <div id="settings-modal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-xl border border-gray-200 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-150">
+      <div class="flex items-center justify-between mb-4 pb-3 border-b border-gray-100 dark:border-slate-800">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-brand-50 dark:bg-brand-950/60 text-brand-600 dark:text-brand-400 flex items-center justify-center">
+            <i data-lucide="key" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Gemini API Settings</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Configure your free Google AI Studio key</p>
+          </div>
+        </div>
+        <button id="close-settings-btn" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded-lg">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Google Gemini API Key</label>
+          <input id="api-key-input" type="password" placeholder="AIzaSy..." class="w-full text-xs px-3 py-2 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:border-brand-500 font-mono" />
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Get a free key from <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-brand-600 dark:text-brand-400 underline font-medium">Google AI Studio</a>. Saved in your browser.</p>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Model Selection</label>
+          <select id="model-select" class="w-full text-xs px-3 py-2 border border-gray-300 dark:border-slate-700 rounded-xl focus:outline-none focus:border-brand-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
+            <option value="gemini-3.6-flash">gemini-3.6-flash (Latest & Recommended)</option>
+            <option value="gemini-1.5-flash">gemini-1.5-flash (High speed)</option>
+            <option value="gemini-1.5-pro">gemini-1.5-pro (Deep reasoning)</option>
+            <option value="gemini-3.6-pro">gemini-3.6-pro (Advanced thinking)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="mt-6 flex items-center justify-end gap-2">
+        <button id="save-settings-btn" class="px-4 py-2 text-xs font-semibold text-white bg-brand-500 hover:bg-brand-600 rounded-xl shadow-2xs transition-colors">
+          Save Settings
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- INTERACTIVE DIAGRAM & IMAGE POPUP MODAL -->
+  <!-- ========================================== -->
+  <div id="lightbox-modal" class="hidden fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 md:p-10 select-none transition-opacity duration-200">
+    <!-- Backdrop Click Dismiss Area -->
+    <div id="lightbox-backdrop-dismiss" class="absolute inset-0"></div>
+
+    <!-- Floating Dialog Container -->
+    <div class="relative z-10 w-full max-w-5xl h-[86vh] bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- Popup Header Toolbar -->
+      <div class="flex items-center justify-between px-4 py-2.5 bg-gray-50/90 dark:bg-slate-900/90 border-b border-gray-200 dark:border-slate-800 shrink-0">
+        <div class="flex items-center gap-2 min-w-0">
+          <div class="w-7 h-7 rounded-lg bg-brand-50 dark:bg-brand-950/60 text-brand-600 dark:text-brand-400 flex items-center justify-center shrink-0">
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+          </div>
+          <div class="truncate">
+            <h3 id="lightbox-title" class="text-xs font-bold text-slate-900 dark:text-white truncate">Interactive Vector Diagram</h3>
+            <p class="text-[10px] text-slate-500 dark:text-slate-400">Scroll or pinch to zoom &bull; Click and drag to pan</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-1.5 shrink-0">
+          <!-- Zoom Controls -->
+          <button id="lightbox-btn-zoom-out" class="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg transition-colors" title="Zoom Out (-)">
+            <i data-lucide="minus" class="w-4 h-4"></i>
+          </button>
+          <span id="lightbox-zoom-label" class="px-2 py-0.5 bg-gray-100 dark:bg-slate-800 text-brand-700 dark:text-brand-300 text-xs font-mono font-semibold rounded-md min-w-[50px] text-center">100%</span>
+          <button id="lightbox-btn-zoom-in" class="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg transition-colors" title="Zoom In (+)">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+          </button>
+          <button id="lightbox-btn-reset" class="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg transition-colors ml-0.5" title="Reset View">
+            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+          </button>
+
+          <div class="h-4 w-px bg-gray-200 dark:bg-slate-700 mx-1"></div>
+
+          <!-- Copy / Action Button -->
+          <button id="lightbox-btn-copy" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg transition-colors" title="Copy Diagram / Image">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            <span id="lightbox-copy-text">Copy SVG</span>
+          </button>
+
+          <!-- Close Button -->
+          <button id="lightbox-btn-close" class="p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40 text-slate-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg transition-colors ml-1" title="Close (Esc)">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Popup Content Canvas Viewport -->
+      <div id="lightbox-viewport" class="relative flex-1 w-full h-full overflow-hidden cursor-grab active:cursor-grabbing flex items-center justify-center bg-slate-100 dark:bg-slate-950/70">
+        <div id="lightbox-transform-layer" class="origin-center transition-transform duration-75 will-change-transform flex items-center justify-center p-6 sm:p-10">
+          <!-- SVG or IMG dynamically injected here -->
+        </div>
+      </div>
+
+      <!-- Popup Footer Controls & Quick Tip -->
+      <div class="flex items-center justify-between px-4 py-1.5 bg-gray-50/80 dark:bg-slate-900/80 text-[11px] text-slate-500 dark:text-slate-400 border-t border-gray-100 dark:border-slate-800 shrink-0">
+        <span>💡 Use mouse wheel or pinch to zoom &bull; Drag to pan across details</span>
+        <span class="font-mono text-slate-400 dark:text-slate-500">ESC to close</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Application Script -->
+  <script src="app.js"></script>
+</body>
+</html>
