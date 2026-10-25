@@ -1,4 +1,4 @@
-# DocuLens - Document Analyzer & Visual Study Assistant
+# DocuLens - Document Analyzer
 
 A lightweight, standalone single-file web application for multi-document reading, freehand visual region marking, multi-document analysis, and AI vector diagram rendering with Google Gemini.
 
