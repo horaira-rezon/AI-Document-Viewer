@@ -7,7 +7,7 @@ A lightweight, standalone single-file web application for multi-document reading
 - **Direct Standalone Run**: Open `index.html` directly in any web browser.
 - **Multi-Document Upload (Up to 10 files)**: Supports PDF, DOCX, PPTX, Images (PNG, JPG, WEBP, GIF), and text files.
 - **Freehand Region Marker Tool**: Circle any formula, diagram, or paragraph on the page to crop and query Gemini specifically about that visual area.
-- **Direct Gemini Streaming**: Real-time streaming responses directly from Google Gemini (`gemini-2.5-flash`, `gemini-1.5-flash`, etc.).
+- **Direct Gemini Streaming**: Real-time streaming responses directly from Google Gemini.
 - **Vector Diagrams**: Automatically renders Mermaid.js flowcharts, mindmaps, and sequence diagrams inline.
 - **Reading Simplicity Dial**: Switch between **Simple (ELI5)**, **Standard**, and **Technical** explanations.
 
